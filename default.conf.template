@@ -1,0 +1,65 @@
+server {
+    listen       ${PORT};
+    listen  [::]:${PORT};
+    server_name  ${NGINX_VIRTUAL_HOST};
+
+    root   ${NGINX_ROOT};
+    index  index.php index.html index.htm;
+
+    error_log  /var/log/nginx/error.log warn;
+
+    sendfile       off;
+    tcp_nopush     on;
+    server_tokens  off;
+    proxy_buffering  off;
+
+    # allow larger file uploads and longer script runtimes
+    client_max_body_size 100m;
+    client_body_timeout  120s;
+
+    real_ip_header     True-Client-IP;
+    proxy_set_header   Host $http_true_client_host;
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ /\.ht {
+        deny all;
+    }
+
+    # pass the PHP scripts to FastCGI server
+    #
+    location = /index.php {
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_index index.php;
+      	include         fastcgi_params;
+        fastcgi_param PHP_VALUE "upload_max_filesize = 100M \n post_max_size=100M";
+        fastcgi_param   SCRIPT_FILENAME    $document_root$fastcgi_script_name;
+	    fastcgi_param   SCRIPT_NAME        $fastcgi_script_name;
+        fastcgi_param   HTTP_PROXY         "";
+        fastcgi_param   HTTP_HOST	   $http_true_client_host;
+        fastcgi_param   SERVER_NAME	   $http_true_client_host;
+        fastcgi_param   REMOTE_ADDR	   $http_true_client_ip;
+        fastcgi_param   REQUEST_SCHEME     $http_true_client_proto;
+      	fastcgi_keep_conn on;
+    	fastcgi_intercept_errors off;
+      	fastcgi_pass    unix:/run/php/php${PHP_VERSION}-fpm.sock;
+        fastcgi_intercept_errors off;
+        fastcgi_buffer_size 16k;
+        fastcgi_buffers 4 16k;
+        fastcgi_connect_timeout 300;
+        fastcgi_send_timeout 300;
+        fastcgi_read_timeout 300;
+    }
+}
