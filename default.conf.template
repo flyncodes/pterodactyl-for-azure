@@ -40,7 +40,7 @@ server {
 
     # pass the PHP scripts to FastCGI server
     #
-    location = /index.php {
+    location ~ \.php$ {
         fastcgi_split_path_info            ^(.+\.php)(/.+)$;
         fastcgi_index   index.php;
       	include         fastcgi_params;
